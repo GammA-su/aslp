@@ -1,0 +1,15 @@
+model_name: meta-llama/Llama-3.1-8B-Instruct
+mode: baseline
+seed: 42
+lora_path: ""
+max_seq_len: 256
+batch_size: 1
+num_sequences: 128
+general_dataset_name: wikitext
+general_dataset_config: wikitext-103-raw-v1
+general_fallback_config: wikitext-2-raw-v1
+general_split: test
+text_field: text
+domain_eval_jsonl: data/domain_eval.jsonl
+general_out_json: ""
+domain_out_json: ""

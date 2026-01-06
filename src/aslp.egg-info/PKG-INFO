@@ -1,3 +1,20 @@
+Metadata-Version: 2.4
+Name: aslp
+Version: 0.1.0
+Summary: ASLP regression-resistant finetuning experiment
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: torch==2.4.1
+Requires-Dist: transformers==4.46.2
+Requires-Dist: peft==0.13.2
+Requires-Dist: datasets==2.20.0
+Requires-Dist: accelerate>=1.1.0
+Requires-Dist: evaluate==0.4.3
+Requires-Dist: tqdm==4.66.5
+Requires-Dist: pyyaml==6.0.2
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pytest==8.3.2
+
 # ASLP LoRA Regression-Resistant Finetuning
 
 Activation-Subspace Left-Projection (ASLP) protects general capabilities during LoRA finetuning by removing update components aligned with a protected activation subspace. A PCA basis U is built from frozen model activations on general text, then after each optimizer step we project the LoRA left factor B to remove components in span(U). A random-subspace control uses the same projection with random orthonormal bases to match compute.

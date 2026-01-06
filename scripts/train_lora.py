@@ -18,7 +18,7 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from aslp.projector import ASLPProjector, random_orthonormal
-from aslp.trainer_patch import ProjectingTrainer
+from aslp.trainer_patch import ProjectingCallback, ProjectingTrainer
 from aslp.utils import (
     coerce_float,
     coerce_optional_float,
@@ -88,6 +88,12 @@ def _build_random_u(model: torch.nn.Module, module_names: list[str], r_pca: int,
     u_by_module: Dict[str, torch.Tensor] = {}
     for idx, name in enumerate(module_names):
         module = name_to_module.get(name)
+        if module is None:
+            matches = [full_name for full_name in name_to_module.keys() if full_name.endswith(name)]
+            if len(matches) == 1:
+                module = name_to_module[matches[0]]
+            elif len(matches) > 1:
+                raise ValueError(f"Ambiguous module name for random projection: {name}")
         if module is None:
             raise ValueError(f"Module not found for random projection: {name}")
         if hasattr(module, "lora_B") and "default" in module.lora_B:
@@ -244,6 +250,10 @@ def main() -> None:
         **training_kwargs,
     )
 
+    callbacks = []
+    if projector is not None:
+        callbacks.append(ProjectingCallback(projector, proj_log_steps))
+
     trainer = ProjectingTrainer(
         model=model,
         args=training_args,
@@ -251,8 +261,7 @@ def main() -> None:
         eval_dataset=tokenized["validation"],
         data_collator=data_collator,
         tokenizer=tokenizer,
-        projector=projector,
-        proj_log_steps=proj_log_steps,
+        callbacks=callbacks,
     )
 
     trainer.train()

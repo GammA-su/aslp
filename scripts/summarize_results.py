@@ -45,26 +45,46 @@ def _format_table(rows: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _find_run_dirs(run_path: Path, general_name: str, domain_name: str) -> List[Path]:
+    direct_general = run_path / general_name
+    direct_domain = run_path / domain_name
+    if direct_general.exists() and direct_domain.exists():
+        return [run_path]
+
+    if run_path.is_dir():
+        candidates = []
+        for child in sorted(run_path.iterdir(), key=lambda p: p.name):
+            if not child.is_dir():
+                continue
+            child_general = child / general_name
+            child_domain = child / domain_name
+            if child_general.exists() and child_domain.exists():
+                candidates.append(child)
+        if candidates:
+            return candidates
+
+    raise FileNotFoundError(f"Missing eval files in {run_path}")
+
+
 def main() -> None:
     args = parse_args()
     rows: List[Dict[str, Any]] = []
 
     for run_dir in args.run_dir:
         run_path = Path(run_dir)
-        general_path = run_path / args.general_name
-        domain_path = run_path / args.domain_name
-        if not general_path.exists() or not domain_path.exists():
-            raise FileNotFoundError(f"Missing eval files in {run_dir}")
-        general = _load_json(general_path)
-        domain = _load_json(domain_path)
-        row = {
-            "mode": general.get("mode", domain.get("mode", "unknown")),
-            "seed": general.get("seed", domain.get("seed", -1)),
-            "general_ppl": general["ppl"],
-            "domain_ppl": domain["ppl"],
-        }
-        rows.append(row)
-        print(json.dumps(row))
+        for resolved_run in _find_run_dirs(run_path, args.general_name, args.domain_name):
+            general_path = resolved_run / args.general_name
+            domain_path = resolved_run / args.domain_name
+            general = _load_json(general_path)
+            domain = _load_json(domain_path)
+            row = {
+                "mode": general.get("mode", domain.get("mode", "unknown")),
+                "seed": general.get("seed", domain.get("seed", -1)),
+                "general_ppl": general["ppl"],
+                "domain_ppl": domain["ppl"],
+            }
+            rows.append(row)
+            print(json.dumps(row))
 
     print(_format_table(rows))
 

@@ -36,11 +36,26 @@ class ASLPProjector:
         self.adapter_name = adapter_name
         self.module_to_B: Dict[str, torch.nn.Parameter] = {}
 
+        lora_B_by_name: Dict[str, torch.nn.Parameter] = {}
         for name, module in model.named_modules():
             if hasattr(module, "lora_B") and adapter_name in module.lora_B:
-                self.module_to_B[name] = module.lora_B[adapter_name].weight
+                lora_B_by_name[name] = module.lora_B[adapter_name].weight
 
-        missing = [name for name in u_by_module.keys() if name not in self.module_to_B]
+        missing = []
+        ambiguous = []
+        for name in u_by_module.keys():
+            if name in lora_B_by_name:
+                self.module_to_B[name] = lora_B_by_name[name]
+                continue
+            matches = [full_name for full_name in lora_B_by_name.keys() if full_name.endswith(name)]
+            if len(matches) == 1:
+                self.module_to_B[name] = lora_B_by_name[matches[0]]
+            elif len(matches) > 1:
+                ambiguous.append(name)
+            else:
+                missing.append(name)
+        if ambiguous:
+            raise ValueError(f"Ambiguous LoRA B weights for modules: {ambiguous}")
         if missing:
             raise ValueError(f"Missing LoRA B weights for modules: {missing}")
 
